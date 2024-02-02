@@ -7,7 +7,7 @@ pub struct RegisterDevice {
 
 pub struct SaveDeviceTemperature {
     pub serial_number: String,
-    pub interval: i32,
+    pub interval: i64,
     pub temperatures: String,
     pub registered_at: DateTime<Utc>,
 }

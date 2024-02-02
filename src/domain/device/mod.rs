@@ -1,8 +1,8 @@
 pub mod commands;
-use chrono::DateTime;
-use chrono::Utc;
-
 use crate::domain::error::Error;
+use chrono::DateTime;
+use chrono::Duration;
+use chrono::Utc;
 
 use self::commands::RegisterDevice;
 use self::commands::SaveDeviceTemperature;
@@ -34,22 +34,21 @@ impl DeviceAggregate {
         self.temperatures =
             Vec::with_capacity(f64::ceil(cmd.temperatures.len() as f64 / 4.0) as usize);
 
-        let mut from = 0;
-        while from < cmd.temperatures.len() {
+        let mut loop_cnt = 0;
+        while loop_cnt * 4 < cmd.temperatures.len() {
             let chunk: String = cmd
                 .temperatures
                 .chars()
                 .into_iter()
-                .skip(from)
+                .skip(loop_cnt * 4)
                 .take(4)
                 .collect();
-
             self.temperatures.push(DeviceTemperature::new(
                 self.device_id,
-                cmd.registered_at,
+                cmd.registered_at + Duration::seconds(cmd.interval) * loop_cnt as i32,
                 &chunk.to_string(),
             )?);
-            from += 4;
+            loop_cnt += 1;
         }
         Ok(())
     }
@@ -130,11 +129,13 @@ mod test_device {
         let mut device = DeviceAggregate::new(cmd, group_id);
 
         //WHEN
+        let registered_at = Utc::now() - Duration::minutes(5);
+        let interval = 300;
         let cmd = SaveDeviceTemperature {
             serial_number: "C48302DDL".to_string(),
-            interval: 300,
+            interval,
             temperatures: "FFFE00010003FFFE00010003FFFE00010003FFFE00010003".to_string(),
-            registered_at: Utc::now() - Duration::minutes(5),
+            registered_at,
         };
         device.save_temperatures(cmd).unwrap();
 
@@ -143,15 +144,36 @@ mod test_device {
         assert_eq!(
             device
                 .temperatures
-                .into_iter()
+                .iter()
                 .map(|t| t.temperature)
                 .collect::<Vec<_>>(),
             vec![-2, 1, 3, -2, 1, 3, -2, 1, 3, -2, 1, 3]
         );
+        assert_eq!(
+            device
+                .temperatures
+                .iter()
+                .map(|t| t.checked_at)
+                .collect::<Vec<_>>(),
+            vec![
+                registered_at,
+                registered_at + Duration::seconds(interval),
+                registered_at + Duration::seconds(interval) * 2,
+                registered_at + Duration::seconds(interval) * 3,
+                registered_at + Duration::seconds(interval) * 4,
+                registered_at + Duration::seconds(interval) * 5,
+                registered_at + Duration::seconds(interval) * 6,
+                registered_at + Duration::seconds(interval) * 7,
+                registered_at + Duration::seconds(interval) * 8,
+                registered_at + Duration::seconds(interval) * 9,
+                registered_at + Duration::seconds(interval) * 10,
+                registered_at + Duration::seconds(interval) * 11
+            ]
+        )
     }
 
     #[test]
-    fn tempeature_convsion() {
+    fn tempeature_conversion() {
         //GIVEN
         // the following should become -2,1,3,-2,1,3,-2,1,3 ...
         let hex_temperature = ["FFFE", "0001", "0003"];
