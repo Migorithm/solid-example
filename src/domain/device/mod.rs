@@ -1,4 +1,5 @@
 pub mod commands;
+pub mod repository;
 use crate::domain::error::Error;
 use chrono::DateTime;
 use chrono::Duration;

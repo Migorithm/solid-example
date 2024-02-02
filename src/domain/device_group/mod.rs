@@ -1,5 +1,5 @@
 pub mod commands;
-
+pub mod repository;
 use chrono::{DateTime, Utc};
 
 use self::commands::RegisterDeviceGroup;
