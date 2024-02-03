@@ -4,9 +4,9 @@ use chrono::{DateTime, Utc};
 
 use self::commands::RegisterDeviceGroup;
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct DeviceGroupAggregate {
-    pub id: i64,
+    pub device_group_id: i64,
 
     // defacto primary key
     pub serial_number: String,

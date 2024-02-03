@@ -6,13 +6,13 @@ use crate::{
         rest_api::response::{Exception, WebResponse},
     },
     domain::{
-        device::commands::{RegisterDevice, SaveDeviceTemperature},
-        device_group::commands::RegisterDeviceGroup,
-        response::Error,
-        response::Response,
+        device::commands::RegisterDevice, device_group::commands::RegisterDeviceGroup,
+        response::Error, response::Response,
     },
     services::handlers::RepositoryHandler,
 };
+
+use super::schemas::SaveDeviceTemperatureBody;
 
 #[axum::debug_handler]
 pub async fn register_device(
@@ -34,9 +34,11 @@ pub async fn register_device_group(
 
 #[axum::debug_handler]
 pub async fn save_device_temperature(
-    Json(cmd): Json<SaveDeviceTemperature>,
+    Json(cmd): Json<SaveDeviceTemperatureBody>,
 ) -> Result<WebResponse<Response>, Exception<Error>> {
-    let res = RepositoryHandler::new(cmd, MockDb).handle().await?;
+    let res = RepositoryHandler::new(cmd.into_command()?, MockDb)
+        .handle()
+        .await?;
 
     Ok(WebResponse(res))
 }
@@ -45,7 +47,7 @@ pub fn routers() -> Router {
     Router::new()
         .route("/device_groups", post(register_device_group))
         .route(
-            "/device",
+            "/devices",
             post(register_device).patch(save_device_temperature),
         )
 }

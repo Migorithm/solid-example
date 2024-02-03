@@ -19,6 +19,11 @@ pub trait TDevicePersist {
         &self,
         device: DeviceAggregate,
     ) -> impl std::future::Future<Output = Result<(), Error>> + Send;
+
+    fn update(
+        &self,
+        device: DeviceAggregate,
+    ) -> impl std::future::Future<Output = Result<(), Error>> + Send;
 }
 
 // For the following domain to work, it requires to query against device group

@@ -32,7 +32,7 @@ impl DeviceAggregate {
     // ? How are you going to make sure of idempotency
     pub fn save_temperatures(&mut self, cmd: SaveDeviceTemperature) -> Result<(), Error> {
         // To prevent frequent allocation
-        self.temperatures =
+        let mut temperatures =
             Vec::with_capacity(f64::ceil(cmd.temperatures.len() as f64 / 4.0) as usize);
 
         let mut loop_cnt = 0;
@@ -44,13 +44,14 @@ impl DeviceAggregate {
                 .skip(loop_cnt * 4)
                 .take(4)
                 .collect();
-            self.temperatures.push(DeviceTemperature::new(
+            temperatures.push(DeviceTemperature::new(
                 self.device_id,
                 cmd.registered_at + Duration::seconds(cmd.interval) * loop_cnt as i32,
                 &chunk.to_string(),
             )?);
             loop_cnt += 1;
         }
+        self.temperatures.extend(temperatures);
         Ok(())
     }
 }

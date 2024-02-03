@@ -16,15 +16,17 @@ use std::sync::atomic::Ordering;
 
 impl TDeviceGroupPersist for MockDb {
     async fn add(&self, mut group: DeviceGroupAggregate) -> Result<(), Error> {
-        group.id = AUTOINCREMENTED_VALUE_FOR_DEVICE_GROUP.fetch_add(1, Ordering::SeqCst);
+        group.device_group_id =
+            AUTOINCREMENTED_VALUE_FOR_DEVICE_GROUP.fetch_add(1, Ordering::SeqCst);
 
         if device_group_table()
-            .read()
+            .write()
             .await
             .iter()
-            .find(|group| group.serial_number == group.serial_number)
+            .find(|existing| existing.serial_number == group.serial_number)
             .is_some()
         {
+            println!("given serial already exist {}", group.serial_number);
             return Err(Error::DuplicateKeyError);
         };
         device_group_table().write().await.push(group);
@@ -49,15 +51,24 @@ impl TDevicePersist for MockDb {
         device.device_id = AUTOINCREMENTED_VALUE_FOR_DEVICE.fetch_add(1, Ordering::SeqCst);
 
         if device_table()
-            .read()
+            .write()
             .await
             .iter()
-            .find(|device| device.serial_number == device.serial_number)
+            .find(|existing| existing.serial_number == device.serial_number)
             .is_some()
         {
             return Err(Error::DuplicateKeyError);
         };
         device_table().write().await.push(device);
+        Ok(())
+    }
+    async fn update(&self, device: DeviceAggregate) -> Result<(), Error> {
+        *device_table()
+            .write()
+            .await
+            .iter_mut()
+            .find(|device| device.serial_number == device.serial_number)
+            .ok_or(Error::NotFound)? = device;
         Ok(())
     }
 }

@@ -26,6 +26,7 @@ impl IntoResponse for Exception<Error> {
         let (status, error_message) = match &self.0 {
             err @ Error::NotFound => (StatusCode::NOT_FOUND, format!("{:?}", err)),
             err @ Error::ConversionFailed => (StatusCode::BAD_REQUEST, format!("{:?}", err)),
+            err @ Error::SchemaError => (StatusCode::UNPROCESSABLE_ENTITY, format!("{:?}", err)),
             err @ Error::DuplicateKeyError => {
                 (StatusCode::INTERNAL_SERVER_ERROR, format!("{:?}", err))
             }
