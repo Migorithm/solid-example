@@ -60,13 +60,15 @@ impl TDevicePersist for MockDb {
         device_table().write().await.push(device.clone());
         Ok(())
     }
-    async fn update(&self, mut device: DeviceAggregate) -> Result<(), Error> {
-        *device_table()
-            .write()
-            .await
+    async fn update(&self, device: &mut DeviceAggregate) -> Result<(), Error> {
+        let mut guard = device_table().write().await;
+
+        let existing = guard
             .iter_mut()
             .find(|existing| existing.device_id == device.device_id)
-            .ok_or(Error::NotFound)? = std::mem::take(&mut device);
+            .ok_or(Error::NotFound)?;
+
+        *existing = device.clone();
         Ok(())
     }
 }

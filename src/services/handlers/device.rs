@@ -1,7 +1,10 @@
 use crate::domain::{
     device::{
         commands::{RegisterDevice, SaveDeviceTemperature},
-        query::GetDeviceAverageTemperatureDuringPeriodQuery,
+        query::{
+            GetDeviceAverageTemperatureDuringPeriodQuery,
+            GetDeviceGroupAverageTemperatureDuringPeriodQuery,
+        },
         repository::{TDeviceGroupQuery, TDevicePersist, TDeviceQuery},
         DeviceAggregate,
     },
@@ -32,7 +35,7 @@ where
     pub async fn handle(self) -> Result<Response, Error> {
         let mut aggregate = self.repo.get(&self.command.serial_number).await?;
         aggregate.save_temperatures(self.command)?;
-        Ok(self.repo.update(aggregate).await?.into())
+        Ok(self.repo.update(&mut aggregate).await?.into())
     }
 }
 
@@ -43,9 +46,32 @@ where
     pub async fn handle(self) -> Result<(DeviceAggregate, f32), Error> {
         let aggregate = self.repo.get(&self.query.serial_number).await?;
         let average = aggregate
-            .get_average_temperature_during_period(self.query.start_date, self.query.end_date)?;
+            .get_average_temperature_during_period(self.query.start_date, self.query.end_date);
 
         Ok((aggregate, average))
+    }
+}
+
+impl<R> QueryHandler<GetDeviceGroupAverageTemperatureDuringPeriodQuery, R>
+where
+    R: TDeviceQuery,
+{
+    pub async fn handle(self) -> Result<Vec<(DeviceAggregate, f32)>, Error> {
+        let aggregates = self
+            .repo
+            .list_by_group(&self.query.device_group_serial)
+            .await?;
+        aggregates.iter().for_each(|f| println!("{:?}", f));
+        Ok(aggregates
+            .into_iter()
+            .map(|aggregate| {
+                let average = aggregate.get_average_temperature_during_period(
+                    self.query.start_date,
+                    self.query.end_date,
+                );
+                (aggregate, average)
+            })
+            .collect())
     }
 }
 

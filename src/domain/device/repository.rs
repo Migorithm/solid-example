@@ -22,7 +22,7 @@ pub trait TDevicePersist {
 
     fn update(
         &self,
-        device: DeviceAggregate,
+        device: &mut DeviceAggregate,
     ) -> impl std::future::Future<Output = Result<(), Error>> + Send;
 }
 

@@ -9,7 +9,10 @@ use chrono::TimeZone;
 use chrono::Utc;
 
 pub mod in_schema {
-    use crate::domain::device::query::GetDeviceAverageTemperatureDuringPeriodQuery;
+    use crate::domain::device::query::{
+        GetDeviceAverageTemperatureDuringPeriodQuery,
+        GetDeviceGroupAverageTemperatureDuringPeriodQuery,
+    };
 
     use super::*;
     #[derive(Deserialize)]
@@ -48,6 +51,30 @@ pub mod in_schema {
 
             Ok(GetDeviceAverageTemperatureDuringPeriodQuery {
                 serial_number: self.serial_number,
+                start_date,
+                end_date,
+            })
+        }
+    }
+
+    #[derive(Deserialize)]
+    pub struct GetDeviceGroupAverageTemperatureDuringPeriod {
+        #[serde(rename = "deviceGroupSerial")]
+        pub device_group_serial: String,
+        #[serde(rename = "startDate")]
+        pub start_date: String,
+        #[serde(rename = "endDate")]
+        pub end_date: String,
+    }
+    impl GetDeviceGroupAverageTemperatureDuringPeriod {
+        pub fn into_query(
+            self,
+        ) -> Result<GetDeviceGroupAverageTemperatureDuringPeriodQuery, Error> {
+            let start_date = convert_string_to_utc_datetime(&self.start_date)?;
+            let end_date = convert_string_to_utc_datetime(&self.end_date)?;
+
+            Ok(GetDeviceGroupAverageTemperatureDuringPeriodQuery {
+                device_group_serial: self.device_group_serial,
                 start_date,
                 end_date,
             })
@@ -104,12 +131,12 @@ pub mod out_schema {
 
     #[derive(Serialize)]
     pub struct DeviceWithAverageTemperatureDuringPeriod {
-        id: i64,
+        pub id: i64,
         #[serde(rename = "serialNumber")]
-        serial_number: String,
+        pub serial_number: String,
 
         #[serde(rename = "averageTemperature")]
-        average_temperature: f32,
+        pub average_temperature: f32,
     }
     impl From<(DeviceAggregate, f32)> for DeviceWithAverageTemperatureDuringPeriod {
         fn from(value: (DeviceAggregate, f32)) -> Self {
@@ -124,6 +151,17 @@ pub mod out_schema {
         for CommonOutSchema<DeviceWithAverageTemperatureDuringPeriod>
     {
         fn from(value: DeviceWithAverageTemperatureDuringPeriod) -> Self {
+            Self {
+                msg: "success".to_string(),
+                data: value,
+            }
+        }
+    }
+
+    impl From<Vec<DeviceWithAverageTemperatureDuringPeriod>>
+        for CommonOutSchema<Vec<DeviceWithAverageTemperatureDuringPeriod>>
+    {
+        fn from(value: Vec<DeviceWithAverageTemperatureDuringPeriod>) -> Self {
             Self {
                 msg: "success".to_string(),
                 data: value,

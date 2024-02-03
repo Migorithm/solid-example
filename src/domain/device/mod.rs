@@ -10,7 +10,7 @@ use serde::Serialize;
 use self::commands::RegisterDevice;
 use self::commands::SaveDeviceTemperature;
 
-#[derive(Default, Clone, Serialize)]
+#[derive(Default, Clone, Serialize, Debug)]
 pub struct DeviceAggregate {
     #[serde(rename = "deviceId")]
     pub device_id: i64,
@@ -64,15 +64,12 @@ impl DeviceAggregate {
         &self,
         start_date: DateTime<Utc>,
         end_date: DateTime<Utc>,
-    ) -> Result<f32, Error> {
+    ) -> f32 {
         let temperature_in_range = self
             .temperatures
             .iter()
             .filter(|temp| start_date <= temp.checked_at && temp.checked_at <= end_date)
             .collect::<Vec<_>>();
-        if temperature_in_range.is_empty() {
-            return Err(Error::NotFound);
-        }
 
         let average: f32 = temperature_in_range
             .iter()
@@ -80,11 +77,11 @@ impl DeviceAggregate {
             .sum::<f32>()
             / temperature_in_range.len() as f32;
 
-        Ok(average)
+        average
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct DeviceTemperature {
     pub device_id: i64,
     pub temperature: i16,

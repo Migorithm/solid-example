@@ -19,7 +19,10 @@ use crate::{
 };
 
 use super::schemas::{
-    in_schema::{GetDeviceAverageTemperatureDuringPeriod, SaveDeviceTemperatureBody},
+    in_schema::{
+        GetDeviceAverageTemperatureDuringPeriod, GetDeviceGroupAverageTemperatureDuringPeriod,
+        SaveDeviceTemperatureBody,
+    },
     out_schema::{CommonOutSchema, DeviceGroupOut, DeviceWithAverageTemperatureDuringPeriod},
 };
 
@@ -60,9 +63,36 @@ pub async fn get_device_average_tempature_during_period(
     Ok(WebResponse(res.into()))
 }
 
+pub async fn get_device_group_average_tempature_during_period(
+    Query(query): Query<GetDeviceGroupAverageTemperatureDuringPeriod>,
+) -> Result<
+    WebResponse<CommonOutSchema<Vec<DeviceWithAverageTemperatureDuringPeriod>>>,
+    Exception<Error>,
+> {
+    let query = query.into_query()?;
+    let res: Vec<DeviceWithAverageTemperatureDuringPeriod> = QueryHandler::new(query, MockDb)
+        .handle()
+        .await?
+        .into_iter()
+        .map(
+            |(device, average)| DeviceWithAverageTemperatureDuringPeriod {
+                id: device.device_id,
+                serial_number: device.serial_number,
+                average_temperature: average,
+            },
+        )
+        .collect::<Vec<_>>();
+
+    Ok(WebResponse(res.into()))
+}
+
 pub fn routers() -> Router {
     Router::new()
         .route("/device_groups", post(register_device_group))
+        .route(
+            "/device_groups/temperature",
+            get(get_device_group_average_tempature_during_period),
+        )
         .route(
             "/devices",
             post(register_device).patch(save_device_temperature),
