@@ -19,8 +19,8 @@ use crate::{
 };
 
 use super::schemas::{
+    in_schema::{GetDeviceAverageTemperatureDuringPeriod, SaveDeviceTemperatureBody},
     out_schema::{CommonOutSchema, DeviceGroupOut, DeviceWithAverageTemperatureDuringPeriod},
-    GetDeviceAverageTemperatureDuringPeriod, SaveDeviceTemperatureBody,
 };
 
 pub async fn register_device(

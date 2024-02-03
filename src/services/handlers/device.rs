@@ -1,14 +1,12 @@
-use crate::{
-    adapters::rest_api::schemas::GetDeviceAverageTemperatureDuringPeriodQuery,
-    domain::{
-        device::{
-            commands::{RegisterDevice, SaveDeviceTemperature},
-            repository::{TDeviceGroupQuery, TDevicePersist, TDeviceQuery},
-            DeviceAggregate,
-        },
-        device_group::DeviceGroupAggregate,
-        response::{Error, Response},
+use crate::domain::{
+    device::{
+        commands::{RegisterDevice, SaveDeviceTemperature},
+        query::GetDeviceAverageTemperatureDuringPeriodQuery,
+        repository::{TDeviceGroupQuery, TDevicePersist, TDeviceQuery},
+        DeviceAggregate,
     },
+    device_group::DeviceGroupAggregate,
+    response::{Error, Response},
 };
 
 use super::{CommandHandler, QueryHandler};

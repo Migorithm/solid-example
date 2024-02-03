@@ -1,4 +1,5 @@
 pub mod commands;
+pub mod query;
 pub mod repository;
 use crate::domain::response::Error;
 use chrono::DateTime;
@@ -45,7 +46,6 @@ impl DeviceAggregate {
             let chunk: String = cmd
                 .temperatures
                 .chars()
-                .into_iter()
                 .skip(loop_cnt * 4)
                 .take(4)
                 .collect();

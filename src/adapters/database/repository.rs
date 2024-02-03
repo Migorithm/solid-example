@@ -23,8 +23,7 @@ impl TDeviceGroupPersist for MockDb {
             .write()
             .await
             .iter()
-            .find(|existing| existing.serial_number == group.serial_number)
-            .is_some()
+            .any(|existing| existing.serial_number == group.serial_number)
         {
             println!("given serial already exist {}", group.serial_number);
             return Err(Error::DuplicateKeyError);
@@ -54,21 +53,20 @@ impl TDevicePersist for MockDb {
             .write()
             .await
             .iter()
-            .find(|existing| existing.serial_number == device.serial_number)
-            .is_some()
+            .any(|existing| existing.serial_number == device.serial_number)
         {
             return Err(Error::DuplicateKeyError);
         };
         device_table().write().await.push(device.clone());
         Ok(())
     }
-    async fn update(&self, device: DeviceAggregate) -> Result<(), Error> {
+    async fn update(&self, mut device: DeviceAggregate) -> Result<(), Error> {
         *device_table()
             .write()
             .await
             .iter_mut()
-            .find(|device| device.serial_number == device.serial_number)
-            .ok_or(Error::NotFound)? = device;
+            .find(|existing| existing.device_id == device.device_id)
+            .ok_or(Error::NotFound)? = std::mem::take(&mut device);
         Ok(())
     }
 }
@@ -92,7 +90,7 @@ impl TDeviceQuery for MockDb {
             .read()
             .await
             .iter()
-            .filter(|device| &device.device_group_serial_number == device_group_serial_number)
+            .filter(|device| device.device_group_serial_number == device_group_serial_number)
             .cloned()
             .collect())
     }

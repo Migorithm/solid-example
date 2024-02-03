@@ -8,51 +8,51 @@ use chrono::NaiveDateTime;
 use chrono::TimeZone;
 use chrono::Utc;
 
-#[derive(Deserialize)]
-pub struct SaveDeviceTemperatureBody {
-    #[serde(rename = "serialNumber")]
-    pub serial_number: String,
-    pub interval: i64,
-    pub temperatures: String,
-    pub registered_at: String,
-}
+pub mod in_schema {
+    use crate::domain::device::query::GetDeviceAverageTemperatureDuringPeriodQuery;
 
-impl SaveDeviceTemperatureBody {
-    pub fn into_command(self) -> Result<SaveDeviceTemperature, Error> {
-        Ok(SaveDeviceTemperature {
-            serial_number: self.serial_number,
-            interval: self.interval,
-            temperatures: self.temperatures,
-            registered_at: convert_string_to_utc_datetime(&self.registered_at)?,
-        })
+    use super::*;
+    #[derive(Deserialize)]
+    pub struct SaveDeviceTemperatureBody {
+        #[serde(rename = "serialNumber")]
+        pub serial_number: String,
+        pub interval: i64,
+        pub temperatures: String,
+        pub registered_at: String,
     }
-}
 
-#[derive(Deserialize)]
-pub struct GetDeviceAverageTemperatureDuringPeriod {
-    #[serde(rename = "serialNumber")]
-    pub serial_number: String,
-    #[serde(rename = "startDate")]
-    pub start_date: String,
-    #[serde(rename = "endDate")]
-    pub end_date: String,
-}
-impl GetDeviceAverageTemperatureDuringPeriod {
-    pub fn into_query(self) -> Result<GetDeviceAverageTemperatureDuringPeriodQuery, Error> {
-        let start_date = convert_string_to_utc_datetime(&self.start_date)?;
-        let end_date = convert_string_to_utc_datetime(&self.end_date)?;
-
-        Ok(GetDeviceAverageTemperatureDuringPeriodQuery {
-            serial_number: self.serial_number,
-            start_date,
-            end_date,
-        })
+    impl SaveDeviceTemperatureBody {
+        pub fn into_command(self) -> Result<SaveDeviceTemperature, Error> {
+            Ok(SaveDeviceTemperature {
+                serial_number: self.serial_number,
+                interval: self.interval,
+                temperatures: self.temperatures,
+                registered_at: convert_string_to_utc_datetime(&self.registered_at)?,
+            })
+        }
     }
-}
-pub struct GetDeviceAverageTemperatureDuringPeriodQuery {
-    pub serial_number: String,
-    pub start_date: DateTime<Utc>,
-    pub end_date: DateTime<Utc>,
+
+    #[derive(Deserialize)]
+    pub struct GetDeviceAverageTemperatureDuringPeriod {
+        #[serde(rename = "serialNumber")]
+        pub serial_number: String,
+        #[serde(rename = "startDate")]
+        pub start_date: String,
+        #[serde(rename = "endDate")]
+        pub end_date: String,
+    }
+    impl GetDeviceAverageTemperatureDuringPeriod {
+        pub fn into_query(self) -> Result<GetDeviceAverageTemperatureDuringPeriodQuery, Error> {
+            let start_date = convert_string_to_utc_datetime(&self.start_date)?;
+            let end_date = convert_string_to_utc_datetime(&self.end_date)?;
+
+            Ok(GetDeviceAverageTemperatureDuringPeriodQuery {
+                serial_number: self.serial_number,
+                start_date,
+                end_date,
+            })
+        }
+    }
 }
 
 pub mod out_schema {
