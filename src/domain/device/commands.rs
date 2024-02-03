@@ -1,10 +1,13 @@
 use chrono::{DateTime, Utc};
+use serde::Deserialize;
 
+#[derive(Deserialize)]
 pub struct RegisterDevice {
     pub serial_number: String,
     pub device_group_serial: String,
 }
 
+#[derive(Deserialize)]
 pub struct SaveDeviceTemperature {
     pub serial_number: String,
     pub interval: i64,

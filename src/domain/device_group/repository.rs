@@ -1,4 +1,4 @@
-use crate::domain::error::Error;
+use crate::domain::response::Error;
 
 use super::DeviceGroupAggregate;
 

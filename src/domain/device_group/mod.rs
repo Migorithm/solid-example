@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 
 use self::commands::RegisterDeviceGroup;
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct DeviceGroupAggregate {
     pub id: i64,
 

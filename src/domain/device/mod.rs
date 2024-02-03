@@ -1,6 +1,6 @@
 pub mod commands;
 pub mod repository;
-use crate::domain::error::Error;
+use crate::domain::response::Error;
 use chrono::DateTime;
 use chrono::Duration;
 use chrono::Utc;
@@ -8,10 +8,10 @@ use chrono::Utc;
 use self::commands::RegisterDevice;
 use self::commands::SaveDeviceTemperature;
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct DeviceAggregate {
     pub device_id: i64,
-    pub device_group_id: i64,
+    pub device_group_serial_number: String,
     pub serial_number: String,
     pub created_at: DateTime<Utc>,
 
@@ -20,9 +20,9 @@ pub struct DeviceAggregate {
 }
 
 impl DeviceAggregate {
-    pub fn new(cmd: RegisterDevice, device_group_id: i64) -> Self {
+    pub fn new(cmd: RegisterDevice) -> Self {
         Self {
-            device_group_id,
+            device_group_serial_number: cmd.device_group_serial,
             serial_number: cmd.serial_number,
             created_at: Utc::now(),
             ..Default::default()
@@ -104,10 +104,9 @@ mod test_device {
             serial_number: "C48302DDL".to_string(),
             device_group_serial: "A1".to_string(),
         };
-        let group_id = 0;
         //WHEN
 
-        let device = DeviceAggregate::new(cmd, group_id);
+        let device = DeviceAggregate::new(cmd);
 
         //THEN
         assert!(!device.serial_number.is_empty());
@@ -125,9 +124,8 @@ mod test_device {
             serial_number: "C48302DDL".to_string(),
             device_group_serial: "A1".to_string(),
         };
-        let group_id = 0;
 
-        let mut device = DeviceAggregate::new(cmd, group_id);
+        let mut device = DeviceAggregate::new(cmd);
 
         //WHEN
         let registered_at = Utc::now() - Duration::minutes(5);
