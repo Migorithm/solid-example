@@ -1,6 +1,6 @@
 use crate::domain::{device::DeviceAggregate, device_group::DeviceGroupAggregate};
 
 pub struct MockDb {
-    devices: Vec<DeviceAggregate>,
-    device_groups: Vec<DeviceGroupAggregate>,
+    pub(crate) devices: Vec<DeviceAggregate>,
+    pub(crate) device_groups: Vec<DeviceGroupAggregate>,
 }
