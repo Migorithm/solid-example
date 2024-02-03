@@ -4,18 +4,23 @@ use crate::domain::response::Error;
 use chrono::DateTime;
 use chrono::Duration;
 use chrono::Utc;
+use serde::Serialize;
 
 use self::commands::RegisterDevice;
 use self::commands::SaveDeviceTemperature;
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Serialize)]
 pub struct DeviceAggregate {
+    #[serde(rename = "deviceId")]
     pub device_id: i64,
+    #[serde(rename = "deviceGroupSerialNumber")]
     pub device_group_serial_number: String,
+    #[serde(rename = "serialNumber")]
     pub serial_number: String,
+    #[serde(rename = "createdAt")]
     pub created_at: DateTime<Utc>,
 
-    // child entity
+    #[serde(skip_serializing)]
     pub temperatures: Vec<DeviceTemperature>,
 }
 
@@ -53,6 +58,29 @@ impl DeviceAggregate {
         }
         self.temperatures.extend(temperatures);
         Ok(())
+    }
+
+    pub fn get_average_temperature_during_period(
+        &self,
+        start_date: DateTime<Utc>,
+        end_date: DateTime<Utc>,
+    ) -> Result<f32, Error> {
+        let temperature_in_range = self
+            .temperatures
+            .iter()
+            .filter(|temp| start_date <= temp.checked_at && temp.checked_at <= end_date)
+            .collect::<Vec<_>>();
+        if temperature_in_range.is_empty() {
+            return Err(Error::NotFound);
+        }
+
+        let average: f32 = temperature_in_range
+            .iter()
+            .map(|f| f.temperature as f32)
+            .sum::<f32>()
+            / temperature_in_range.len() as f32;
+
+        Ok(average)
     }
 }
 

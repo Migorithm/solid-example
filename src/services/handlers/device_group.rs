@@ -2,18 +2,19 @@ use crate::domain::{
     device_group::{
         commands::RegisterDeviceGroup, repository::TDeviceGroupPersist, DeviceGroupAggregate,
     },
-    response::{Error, Response},
+    response::Error,
 };
 
-use super::RepositoryHandler;
+use super::CommandHandler;
 
-impl<R> RepositoryHandler<RegisterDeviceGroup, R>
+impl<R> CommandHandler<RegisterDeviceGroup, R>
 where
     R: TDeviceGroupPersist,
 {
-    pub async fn handle(self) -> Result<Response, Error> {
-        let aggregate = DeviceGroupAggregate::new(self.command);
-        Ok(self.repo.add(aggregate).await?.into())
+    pub async fn handle(self) -> Result<DeviceGroupAggregate, Error> {
+        let mut aggregate = DeviceGroupAggregate::new(self.command);
+        self.repo.add(&mut aggregate).await?;
+        Ok(aggregate)
     }
 }
 
@@ -26,7 +27,7 @@ pub mod test_device_handler {
         domain::{
             device::repository::TDeviceGroupQuery, device_group::commands::RegisterDeviceGroup,
         },
-        services::handlers::RepositoryHandler,
+        services::handlers::CommandHandler,
     };
 
     #[tokio::test]
@@ -38,7 +39,7 @@ pub mod test_device_handler {
         let cmd = RegisterDeviceGroup {
             device_group_serial: "A11".to_string(),
         };
-        let handler = RepositoryHandler::new(cmd, db.clone());
+        let handler = CommandHandler::new(cmd, db.clone());
         handler.handle().await.unwrap();
 
         //THEN
@@ -54,7 +55,7 @@ pub mod test_device_handler {
         let cmd = RegisterDeviceGroup {
             device_group_serial: serial.to_string(),
         };
-        let handler = RepositoryHandler::new(cmd, db.clone());
+        let handler = CommandHandler::new(cmd, db.clone());
         //WHEN
         handler.handle().await.unwrap();
     }

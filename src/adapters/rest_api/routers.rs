@@ -1,4 +1,8 @@
-use axum::{routing::post, Json, Router};
+use axum::{
+    extract::Query,
+    routing::{get, post},
+    Json, Router,
+};
 
 use crate::{
     adapters::{
@@ -6,41 +10,54 @@ use crate::{
         rest_api::response::{Exception, WebResponse},
     },
     domain::{
-        device::commands::RegisterDevice, device_group::commands::RegisterDeviceGroup,
-        response::Error, response::Response,
+        device::commands::RegisterDevice,
+        device_group::{commands::RegisterDeviceGroup, DeviceGroupAggregate},
+        response::Error,
+        response::Response,
     },
-    services::handlers::RepositoryHandler,
+    services::handlers::{CommandHandler, QueryHandler},
 };
 
-use super::schemas::SaveDeviceTemperatureBody;
+use super::schemas::{
+    out_schema::{CommonOutSchema, DeviceGroupOut, DeviceWithAverageTemperatureDuringPeriod},
+    GetDeviceAverageTemperatureDuringPeriod, SaveDeviceTemperatureBody,
+};
 
-#[axum::debug_handler]
 pub async fn register_device(
     Json(cmd): Json<RegisterDevice>,
-) -> Result<WebResponse<Response>, Exception<Error>> {
-    let res = RepositoryHandler::new(cmd, MockDb).handle().await?;
+) -> Result<WebResponse<CommonOutSchema<DeviceGroupOut>>, Exception<Error>> {
+    let out = CommandHandler::new(cmd, MockDb).handle().await?.into();
 
-    Ok(WebResponse(res))
+    Ok(WebResponse(out))
 }
 
-#[axum::debug_handler]
 pub async fn register_device_group(
     Json(cmd): Json<RegisterDeviceGroup>,
-) -> Result<WebResponse<Response>, Exception<Error>> {
-    let res = RepositoryHandler::new(cmd, MockDb).handle().await?;
+) -> Result<WebResponse<CommonOutSchema<DeviceGroupAggregate>>, Exception<Error>> {
+    let res = CommandHandler::new(cmd, MockDb).handle().await?;
 
-    Ok(WebResponse(res))
+    Ok(WebResponse(res.into()))
 }
 
-#[axum::debug_handler]
 pub async fn save_device_temperature(
     Json(cmd): Json<SaveDeviceTemperatureBody>,
 ) -> Result<WebResponse<Response>, Exception<Error>> {
-    let res = RepositoryHandler::new(cmd.into_command()?, MockDb)
+    let res = CommandHandler::new(cmd.into_command()?, MockDb)
         .handle()
         .await?;
 
     Ok(WebResponse(res))
+}
+
+pub async fn get_device_average_tempature_during_period(
+    Query(query): Query<GetDeviceAverageTemperatureDuringPeriod>,
+) -> Result<WebResponse<CommonOutSchema<DeviceWithAverageTemperatureDuringPeriod>>, Exception<Error>>
+{
+    let query = query.into_query()?;
+    let res: DeviceWithAverageTemperatureDuringPeriod =
+        QueryHandler::new(query, MockDb).handle().await?.into();
+
+    Ok(WebResponse(res.into()))
 }
 
 pub fn routers() -> Router {
@@ -49,5 +66,9 @@ pub fn routers() -> Router {
         .route(
             "/devices",
             post(register_device).patch(save_device_temperature),
+        )
+        .route(
+            "/devices/temperature",
+            get(get_device_average_tempature_during_period),
         )
 }

@@ -1,15 +1,18 @@
 pub mod commands;
 pub mod repository;
 use chrono::{DateTime, Utc};
+use serde::Serialize;
 
 use self::commands::RegisterDeviceGroup;
 
-#[derive(Default, Clone, Debug)]
+#[derive(Default, Clone, Debug, Serialize)]
 pub struct DeviceGroupAggregate {
+    #[serde(rename = "deviceGroupId")]
     pub device_group_id: i64,
-
     // defacto primary key
+    #[serde(rename = "serialNumber")]
     pub serial_number: String,
+    #[serde(rename = "createdAt")]
     pub created_at: DateTime<Utc>,
 }
 

@@ -33,6 +33,7 @@ impl IntoResponse for Exception<Error> {
         };
 
         let body = Json(json!({"error": error_message}));
+        eprintln!("{:?}", body);
         (status, body).into_response()
     }
 }

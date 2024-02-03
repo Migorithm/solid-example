@@ -15,7 +15,7 @@ use crate::{
 use std::sync::atomic::Ordering;
 
 impl TDeviceGroupPersist for MockDb {
-    async fn add(&self, mut group: DeviceGroupAggregate) -> Result<(), Error> {
+    async fn add(&self, group: &mut DeviceGroupAggregate) -> Result<(), Error> {
         group.device_group_id =
             AUTOINCREMENTED_VALUE_FOR_DEVICE_GROUP.fetch_add(1, Ordering::SeqCst);
 
@@ -29,7 +29,7 @@ impl TDeviceGroupPersist for MockDb {
             println!("given serial already exist {}", group.serial_number);
             return Err(Error::DuplicateKeyError);
         };
-        device_group_table().write().await.push(group);
+        device_group_table().write().await.push(group.clone());
         Ok(())
     }
 }
@@ -47,7 +47,7 @@ impl TDeviceGroupQuery for MockDb {
 }
 
 impl TDevicePersist for MockDb {
-    async fn add(&self, mut device: DeviceAggregate) -> Result<(), Error> {
+    async fn add(&self, device: &mut DeviceAggregate) -> Result<(), Error> {
         device.device_id = AUTOINCREMENTED_VALUE_FOR_DEVICE.fetch_add(1, Ordering::SeqCst);
 
         if device_table()
@@ -59,7 +59,7 @@ impl TDevicePersist for MockDb {
         {
             return Err(Error::DuplicateKeyError);
         };
-        device_table().write().await.push(device);
+        device_table().write().await.push(device.clone());
         Ok(())
     }
     async fn update(&self, device: DeviceAggregate) -> Result<(), Error> {

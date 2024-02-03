@@ -17,7 +17,7 @@ pub trait TDeviceQuery {
 pub trait TDevicePersist {
     fn add(
         &self,
-        device: DeviceAggregate,
+        device: &mut DeviceAggregate,
     ) -> impl std::future::Future<Output = Result<(), Error>> + Send;
 
     fn update(

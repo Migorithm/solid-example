@@ -1,30 +1,33 @@
-use crate::domain::{
-    device::{
-        commands::{RegisterDevice, SaveDeviceTemperature},
-        repository::{TDeviceGroupQuery, TDevicePersist, TDeviceQuery},
-        DeviceAggregate,
+use crate::{
+    adapters::rest_api::schemas::GetDeviceAverageTemperatureDuringPeriodQuery,
+    domain::{
+        device::{
+            commands::{RegisterDevice, SaveDeviceTemperature},
+            repository::{TDeviceGroupQuery, TDevicePersist, TDeviceQuery},
+            DeviceAggregate,
+        },
+        device_group::DeviceGroupAggregate,
+        response::{Error, Response},
     },
-    response::{Error, Response},
 };
 
-use super::RepositoryHandler;
+use super::{CommandHandler, QueryHandler};
 
-//TODO return type matching according to requirement
-impl<R> RepositoryHandler<RegisterDevice, R>
+impl<R> CommandHandler<RegisterDevice, R>
 where
     R: TDevicePersist + TDeviceGroupQuery,
 {
-    pub async fn handle(self) -> Result<Response, Error> {
+    pub async fn handle(self) -> Result<(DeviceAggregate, DeviceGroupAggregate), Error> {
         // Validate if group actually exists
-        self.repo.get(&self.command.device_group_serial).await?;
+        let group = self.repo.get(&self.command.device_group_serial).await?;
 
-        let aggregate = DeviceAggregate::new(self.command);
-        Ok(self.repo.add(aggregate).await?.into())
+        let mut aggregate = DeviceAggregate::new(self.command);
+        self.repo.add(&mut aggregate).await?;
+        Ok((aggregate, group))
     }
 }
 
-//TODO return type matching according to requirement
-impl<R> RepositoryHandler<SaveDeviceTemperature, R>
+impl<R> CommandHandler<SaveDeviceTemperature, R>
 where
     R: TDevicePersist + TDeviceQuery,
 {
@@ -32,6 +35,19 @@ where
         let mut aggregate = self.repo.get(&self.command.serial_number).await?;
         aggregate.save_temperatures(self.command)?;
         Ok(self.repo.update(aggregate).await?.into())
+    }
+}
+
+impl<R> QueryHandler<GetDeviceAverageTemperatureDuringPeriodQuery, R>
+where
+    R: TDeviceQuery,
+{
+    pub async fn handle(self) -> Result<(DeviceAggregate, f32), Error> {
+        let aggregate = self.repo.get(&self.query.serial_number).await?;
+        let average = aggregate
+            .get_average_temperature_during_period(self.query.start_date, self.query.end_date)?;
+
+        Ok((aggregate, average))
     }
 }
 
@@ -46,7 +62,7 @@ mod test_device_handler {
             response::Error,
         },
         services::handlers::{
-            device_group::test_device_handler::group_creating_helper, RepositoryHandler,
+            device_group::test_device_handler::group_creating_helper, CommandHandler,
         },
     };
 
@@ -61,7 +77,7 @@ mod test_device_handler {
             serial_number: "C48302DDL".to_string(),
             device_group_serial: "A6".to_string(),
         };
-        let handler = RepositoryHandler::new(cmd, db.clone());
+        let handler = CommandHandler::new(cmd, db.clone());
         let res = handler.handle().await;
 
         //THEN
@@ -82,7 +98,7 @@ mod test_device_handler {
             serial_number: "C8302DDF".to_string(),
             device_group_serial: "B1".to_string(),
         };
-        let handler = RepositoryHandler::new(cmd, db.clone());
+        let handler = CommandHandler::new(cmd, db.clone());
         handler.handle().await.unwrap();
 
         //THEN
@@ -102,7 +118,7 @@ mod test_device_handler {
             serial_number: "C48302DDK".to_string(),
             device_group_serial: "A3".to_string(),
         };
-        let handler = RepositoryHandler::new(cmd, db.clone());
+        let handler = CommandHandler::new(cmd, db.clone());
         handler.handle().await.unwrap();
 
         //WHEN
@@ -112,7 +128,7 @@ mod test_device_handler {
             temperatures: "FFFE00010003FFFE00010003FFFE00010003FFFE00010003".to_string(),
             registered_at: Utc::now() - Duration::minutes(10),
         };
-        let handler = RepositoryHandler::new(cmd, db.clone());
+        let handler = CommandHandler::new(cmd, db.clone());
         handler.handle().await.unwrap();
 
         //THEN
