@@ -181,3 +181,18 @@ fn test_naive_time_conversion() {
     let naive = "2023-02-01 19:00:00";
     convert_string_to_utc_datetime(naive).unwrap();
 }
+
+#[test]
+fn datetime_conversion() {
+    use chrono::DateTime;
+    use chrono::NaiveDateTime;
+    use chrono::TimeZone;
+    use chrono::Utc;
+    let date_str = "2023-01-01 16:00:00";
+
+    // Parse the string using the specified format
+    let datetime = NaiveDateTime::parse_from_str(date_str, "%Y-%m-%d %H:%M:%S")
+        .expect("Failed to parse datetime");
+
+    let _date_time: DateTime<Utc> = Utc.from_local_datetime(&datetime).unwrap();
+}

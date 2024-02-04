@@ -61,7 +61,6 @@ where
             .repo
             .list_by_group(&self.query.device_group_serial)
             .await?;
-        aggregates.iter().for_each(|f| println!("{:?}", f));
         Ok(aggregates
             .into_iter()
             .map(|aggregate| {
@@ -82,13 +81,40 @@ mod test_device_handler {
     use crate::{
         adapters::database::mock_db::MockDb,
         domain::{
-            device::commands::{RegisterDevice, SaveDeviceTemperature},
+            device::{
+                commands::{RegisterDevice, SaveDeviceTemperature},
+                query::{
+                    GetDeviceAverageTemperatureDuringPeriodQuery,
+                    GetDeviceGroupAverageTemperatureDuringPeriodQuery,
+                },
+            },
             response::Error,
         },
         services::handlers::{
-            device_group::test_device_handler::group_creating_helper, CommandHandler,
+            device_group::test_device_handler::group_creating_helper, CommandHandler, QueryHandler,
         },
     };
+
+    async fn device_create_helper(device_group_serial: &str, serial_number: &str) {
+        let cmd = RegisterDevice {
+            serial_number: serial_number.to_string(),
+            device_group_serial: device_group_serial.to_string(),
+        };
+        let handler = CommandHandler::new(cmd, MockDb);
+        handler.handle().await.unwrap();
+    }
+
+    async fn save_temperatures_helper(serial_number: &str, temperatures: &str) {
+        let db = MockDb;
+        let cmd = SaveDeviceTemperature {
+            serial_number: serial_number.to_string(),
+            interval: 300,
+            temperatures: temperatures.to_string(),
+            registered_at: Utc::now(),
+        };
+        let handler = CommandHandler::new(cmd, db.clone());
+        handler.handle().await.unwrap();
+    }
 
     // Without existing device group, it will error out saying "Not Found"
     #[tokio::test]
@@ -136,14 +162,8 @@ mod test_device_handler {
         //GIVEN
         // precondition: creation of group and device
         group_creating_helper("A3").await;
-
+        device_create_helper("A3", "C48302DDK").await;
         let db = MockDb;
-        let cmd = RegisterDevice {
-            serial_number: "C48302DDK".to_string(),
-            device_group_serial: "A3".to_string(),
-        };
-        let handler = CommandHandler::new(cmd, db.clone());
-        handler.handle().await.unwrap();
 
         //WHEN
         let cmd = SaveDeviceTemperature {
@@ -158,5 +178,58 @@ mod test_device_handler {
         //THEN
         let aggregate = db.get("C48302DDK").await.unwrap();
         assert_eq!(aggregate.temperatures.len(), 12);
+    }
+
+    #[tokio::test]
+    async fn test_get_device_average_temperature() {
+        //GIVEN
+        group_creating_helper("R1").await;
+        device_create_helper("R1", "R48302DDK").await;
+        save_temperatures_helper("R48302DDK", "FFFEFFFEFFFEFFFE").await;
+
+        let db = MockDb;
+
+        //WHEN
+        let query = GetDeviceAverageTemperatureDuringPeriodQuery {
+            serial_number: "R48302DDK".to_string(),
+            start_date: Utc::now() - Duration::minutes(300),
+            end_date: Utc::now() + Duration::minutes(300),
+        };
+        let handler = QueryHandler::new(query, db);
+        let (device, average) = handler.handle().await.unwrap();
+        //THEN
+        assert_eq!(-2.0, average);
+        assert_eq!(device.device_group_serial_number, "R1".to_string());
+    }
+
+    #[tokio::test]
+    async fn test_get_device_group_average_temperature() {
+        //GIVEN
+        group_creating_helper("R1").await;
+        device_create_helper("R1", "R18302DDK").await;
+        device_create_helper("R1", "R28302DDK").await;
+        save_temperatures_helper("R18302DDK", "FFFE00010003FFFE").await;
+        save_temperatures_helper("R28302DDK", "FFFE000100030001").await;
+
+        let db = MockDb;
+
+        //WHEN
+        let query = GetDeviceGroupAverageTemperatureDuringPeriodQuery {
+            device_group_serial: "R1".to_string(),
+            start_date: Utc::now() - Duration::minutes(300),
+            end_date: Utc::now() + Duration::minutes(300),
+        };
+        let handler = QueryHandler::new(query, db);
+        let result = handler.handle().await.unwrap();
+
+        //THEN
+        assert_eq!(result.len(), 2);
+        let first_device = result.first().unwrap();
+        assert_eq!(first_device.0.serial_number, "R18302DDK");
+        assert_eq!(first_device.1, 0.0);
+
+        let second_device = result.last().unwrap();
+        assert_eq!(second_device.0.serial_number, "R28302DDK");
+        assert_eq!(second_device.1, 0.75);
     }
 }
