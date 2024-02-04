@@ -56,7 +56,7 @@ cargo test
 
 
 ## ERD
-Please refer to domain and its `mod`'s to see how entity relationships are drawn.
+Please refer to domain and its `mod`s to see how entity relationships are drawn.
 
 
 ## Database
