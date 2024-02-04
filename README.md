@@ -3,8 +3,8 @@
 This is a mock example to show how SOLID is applied to Rust web developement
 
 
-## Requirement
-
+## Rust version
+1.75.0
 
 
 ## How to run
