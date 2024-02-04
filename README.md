@@ -53,3 +53,13 @@ Each test is designed so you can run without worries about concurrency
 ```sh
 cargo test
 ```
+
+
+## ERD
+Please refer to domain and its `mod`'s to see how entity relationships are drawn.
+
+
+## Database
+In memory, `MockDb` is implemented for the sake of simplicity, which assumes locking mechanism with the use of signleton pattern with Arc, RwLock. 
+
+
